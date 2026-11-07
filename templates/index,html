@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <title>تحلیل آدرس IP</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;700&display=swap" rel="stylesheet">
+
+    <style>
+        body {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            background-color: whitesmoke;
+            color: darkslategray;
+            margin: 0;
+            padding: 40px 20px;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-top: 0;
+            margin-bottom: 25px;
+            text-align: center;
+        }
+
+        .ip-input {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+            direction: ltr;
+            margin-bottom: 20px;
+        }
+
+        .ip-input input {
+            width: 60px;
+            padding: 10px;
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            font-size: 16px;
+            text-align: center;
+            border: 1px solid lightgray;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        .ip-input input:focus {
+            border-color: dodgerblue;
+        }
+
+        .ip-input span {
+            font-size: 20px;
+            color: gray;
+        }
+
+        .buttons {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+
+        .buttons button {
+            font-family: 'Vazirmatn', Tahoma, sans-serif;
+            color: white;
+            border: none;
+            padding: 10px 30px;
+            border-radius: 6px;
+            font-size: 15px;
+            cursor: pointer;
+        }
+
+        #submitBtn {
+            background: dodgerblue;
+        }
+
+        #submitBtn:hover {
+            background: royalblue;
+        }
+
+        #pingBtn {
+            background: mediumseagreen;
+        }
+
+        #pingBtn:hover {
+            background: seagreen;
+        }
+
+        #result {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid gainsboro;
+        }
+
+        #result table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        #result td {
+            padding: 10px 8px;
+            border-bottom: 1px solid gainsboro;
+            font-size: 14px;
+        }
+
+        #result td:first-child {
+            color: gray;
+            width: 45%;
+        }
+
+        #result td:last-child {
+            font-weight: bold;
+            direction: ltr;
+            text-align: left;
+        }
+
+        .error {
+            color: crimson;
+            text-align: center;
+            font-size: 13px;
+            min-height: 18px;
+        }
+
+        #pingStatus {
+            text-align: center;
+            font-size: 14px;
+            font-weight: bold;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>تحلیل آدرس IP</h1>
+
+        <div class="ip-input">
+            <input type="text" id="oct1" maxlength="3" value="0">
+            <span>.</span>
+            <input type="text" id="oct2" maxlength="3" value="0">
+            <span>.</span>
+            <input type="text" id="oct3" maxlength="3" value="0">
+            <span>.</span>
+            <input type="text" id="oct4" maxlength="3" value="0">
+        </div>
+
+        <p class="error" id="errorMsg"></p>
+
+        <div class="buttons">
+            <button id="submitBtn">Submit</button>
+            <button id="pingBtn">وضعیت پینگ</button>
+        </div>
+
+        <div id="pingStatus"></div>
+
+        <div id="result">
+            <table>
+                <tr><td>آدرس IP</td><td id="rIp">-</td></tr>
+                <tr><td>کلاس IP</td><td id="rClass">-</td></tr>
+                <tr><td>شناسه شبکه</td><td id="rNetworkId">-</td></tr>
+                <tr><td>شناسه میزبان</td><td id="rHostId">-</td></tr>
+                <tr><td>آدرس شبکه</td><td id="rNetworkAddr">-</td></tr>
+                <tr><td>آدرس برادکست</td><td id="rBroadcast">-</td></tr>
+                <tr><td>سابنت مسک</td><td id="rSubnetMask">-</td></tr>
+            </table>
+        </div>
+    </div>
+
+    <script>
+        const octInputs = [
+            document.getElementById('oct1'),
+            document.getElementById('oct2'),
+            document.getElementById('oct3'),
+            document.getElementById('oct4')
+        ];
+
+        const errorMsg = document.getElementById('errorMsg');
+        const pingStatus = document.getElementById('pingStatus');
+
+        octInputs.forEach(function (input, index) {
+            input.addEventListener('input', function () {
+                if (input.value !== '' && Number(input.value) > 255) {
+                    input.value = input.value.slice(0, -1);
+                }
+
+                if (input.value.length === 3 && index < 3) {
+                    octInputs[index + 1].focus();
+                }
+            });
+
+            input.addEventListener('focus', function () {
+                input.select();
+            });
+        });
+
+        document.getElementById('submitBtn').addEventListener('click', function () {
+            errorMsg.textContent = '';
+            pingStatus.textContent = '';
+
+            const octets = octInputs.map(function (input) {
+                return input.value === '' ? 0 : Number(input.value);
+            });
+
+            if (octets[0] === 127) {
+                errorMsg.textContent = 'آدرس‌های شروع‌شده با 127 مجاز نیستند.';
+                return;
+            }
+
+            const ip = octets.join('.');
+
+            fetch('http://127.0.0.1:5000/info', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip: ip })
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    document.getElementById('rIp').textContent = data.ip || ip;
+                    document.getElementById('rClass').textContent = data.class || '-';
+                    document.getElementById('rNetworkId').textContent = data.networkId || '-';
+                    document.getElementById('rHostId').textContent = data.hostId || '-';
+                    document.getElementById('rNetworkAddr').textContent = data.networkAddr || '-';
+                    document.getElementById('rBroadcast').textContent = data.broadcast || '-';
+                    document.getElementById('rSubnetMask').textContent = data.subnetMask || '-';
+                });
+        });
+
+        document.getElementById('pingBtn').addEventListener('click', function () {
+            errorMsg.textContent = '';
+            pingStatus.textContent = 'در حال بررسی...';
+            pingStatus.style.color = 'gray';
+
+            const octets = octInputs.map(function (input) {
+                return input.value === '' ? 0 : Number(input.value);
+            });
+
+            const ip = octets.join('.');
+
+            fetch("http://127.0.0.1:5000/ping", {
+                method: "POST",
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ ip: ip })
+            })
+                .then(function (response) {
+                    return response.json();
+                })
+                .then(function (data) {
+                    if (data.ping === true) {
+                        pingStatus.textContent = 'وضعیت: آنلاین';
+                        pingStatus.style.color = 'mediumseagreen';
+                    } else {
+                        pingStatus.textContent = 'وضعیت: آفلاین';
+                        pingStatus.style.color = 'crimson';
+                    }
+                });
+        });
+    </script>
+</body>
+</html>
